@@ -8,16 +8,14 @@ from scipy import signal
 from scipy.spatial.distance import euclidean
 import json
 
-app = Flask(**name**)
-
 # Manual CORS handling
-
 @app.after_request
 def after_request(response):
-response.headers.add(‘Access-Control-Allow-Origin’, ‘*’)
-response.headers.add(‘Access-Control-Allow-Headers’, ‘Content-Type’)
-response.headers.add(‘Access-Control-Allow-Methods’, ‘GET,POST,OPTIONS’)
-return response
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
+    return response
+
 
 class TerrainAnalyzer:
 def **init**(self):
