@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Backcountry Location Finder</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+            color: #F8F9FA;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container { max-width: 800px; margin: 0 auto; }
+        h1 {
+            font-size: 48px;
+            text-align: center;
+            color: #F8F9FA;
+            margin-bottom: 40px;
+            text-shadow: 2px 2px 0 #2B4C7E;
+        }
+        .upload-zone {
+            border: 3px dashed #8B6F47;
+            padding: 60px 20px;
+            text-align: center;
+            cursor: pointer;
+            background: rgba(139, 111, 71, 0.1);
+            margin-bottom: 20px;
+            transition: all 0.3s;
+        }
+        .upload-zone:hover { border-color: #D4691E; }
+        .upload-text { font-size: 18px; margin-bottom: 10px; }
+        #fileInput { display: none; }
+        .preview-container { display: none; margin-top: 20px; }
+        .preview-container.active { display: block; }
+        .image-preview {
+            width: 100%;
+            max-height: 400px;
+            object-fit: contain;
+            border: 2px solid #2B4C7E;
+        }
+        .analyze-btn {
+            width: 100%;
+            padding: 18px;
+            background: linear-gradient(135deg, #D4691E, #B8571B);
+            border: none;
+            color: white;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+        .analyze-btn:hover { transform: scale(1.02); }
+        .results { margin-top: 30px; }
+        .result-item {
+            background: rgba(0, 0, 0, 0.7);
+            border: 2px solid #8B6F47;
+            padding: 20px;
+            margin-bottom: 15px;
+        }
+        .result-title {
+            font-size: 24px;
+            color: #D4691E;
+            margin-bottom: 10px;
+        }
+        .result-detail {
+            margin: 8px 0;
+            font-size: 14px;
+        }
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+            color: #D4691E;
+        }
+        .loading.active { display: block; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏔️ BACKCOUNTRY FINDER</h1>
+        
+        <div class="upload-zone" id="uploadZone">
+            <div class="upload-text">📷 Click to Upload Photo</div>
+            <div style="font-size: 12px; color: #8B6F47;">or drag and drop</div>
+        </div>
+        
+        <input type="file" id="fileInput" accept="image/*">
+        
+        <div class="preview-container" id="previewContainer">
+            <img id="imagePreview" class="image-preview">
+            <button class="analyze-btn" id="analyzeBtn">ANALYZE LOCATION</button>
+        </div>
+        
+        <div class="loading" id="loading">🔍 Analyzing skyline...</div>
+        
+        <div class="results" id="results"></div>
+    </div>
+
+    <script>
+        const uploadZone = document.getElementById('uploadZone');
+        const fileInput = document.getElementById('fileInput');
+        const previewContainer = document.getElementById('previewContainer');
+        const imagePreview = document.getElementById('imagePreview');
+        const analyzeBtn = document.getElementById('analyzeBtn');
+        const results = document.getElementById('results');
+        const loading = document.getElementById('loading');
+        let currentImage = null;
+
+        uploadZone.addEventListener('click', () => fileInput.click());
+
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    imagePreview.src = e.target.result;
+                    previewContainer.classList.add('active');
+                    currentImage = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        analyzeBtn.addEventListener('click', async () => {
+            if (!currentImage) return;
+
+            loading.classList.add('active');
+            results.innerHTML = '';
+
+            try {
+                const response = await fetch('https://web-production-ca33d.up.railway.app/analyze', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ image: currentImage })
+                });
+
+                const data = await response.json();
+                
+                if (data.success && data.matches) {
+                    data.matches.forEach((match, index) => {
+                        const item = document.createElement('div');
+                        item.className = 'result-item';
+                        item.innerHTML = `
+                            <div class="result-title">#${index + 1} ${match.location}</div>
+                            <div class="result-detail">Confidence: ${match.confidence}%</div>
+                            <div class="result-detail">Elevation: ${match.elevation}ft</div>
+                            <div class="result-detail">Aspect: ${match.aspect}</div>
+                            <div class="result-detail">Terrain: ${match.terrain}</div>
+                        `;
+                        results.appendChild(item);
+                    });
+                } else {
+                    results.innerHTML = '<div class="result-item">No matches found</div>';
+                }
+            } catch (error) {
+                results.innerHTML = `<div class="result-item">Error: ${error.message}</div>`;
+            } finally {
+                loading.classList.remove('active');
+            }
+        });
+    </script>
+</body>
+</html>
